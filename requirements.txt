@@ -1,3 +1,4 @@
 pywin32
 customtkinter
 snap7
+python-snap7

@@ -1,42 +1,27 @@
-import customtkinter as ctk
-import queue
-from core.opc_client import OPCClient
-from core.plc_client import PLCClient
-from core.mapper import Mapper
-from core.logger import logger
-from config import settings
+from GUI.app import App
+from core.opc_worker import OPCWorker
+from core.plc_worker import PLCWorker
+import sys
 
-ctk.set_appearance_mode("dark")
+if __name__ == "__main__":
+    print("Starting Application...")
 
-class App(ctk.CTk):
-    def __init__(self):
-        super().__init__()
-        self.geometry("1000x600")
+    # 1. Start Background Threads
+    opc_thread = OPCWorker()
+    plc_thread = PLCWorker()
 
-        self.sidebar = Sidebar(self, self.show_page)
-        self.sidebar.pack(side="left", fill="y")
+    opc_thread.start()
+    plc_thread.start()
 
-        self.container = ctk.CTkFrame(self)
-        self.container.pack(expand=True, fill="both")
-
-        self.pages = {
-            "config": ConfigPage(self.container),
-            "monitor": MonitorPage(self.container),
-            "log": LogPage(self.container),
-        }
-
-        self.show_page("config")
-
-        self.after(100, self.gui_update_loop)
-
-    def show_page(self, name):
-        for p in self.pages.values():
-            p.pack_forget()
-        self.pages[name].pack(expand=True, fill="both")
-
-    def gui_update_loop(self):
-        while not data_queue.empty():
-            data = data_queue.get()
-            self.pages["monitor"].update_data(data)
-
-        self.after(100, self.gui_update_loop)
+    # 2. Start GUI (Main Thread)
+    # GUI ต้องรันใน Main Thread เสมอ
+    try:
+        app = App()
+        app.mainloop()
+    except KeyboardInterrupt:
+        print("Stopping...")
+    finally:
+        # 3. Cleanup Clean Exit
+        opc_thread.stop()
+        plc_thread.stop()
+        sys.exit(0)
